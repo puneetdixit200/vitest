@@ -5,7 +5,6 @@ import type {
 import type { CliOptions } from './cli/cli-api'
 import type { VitestOptions } from './core'
 import type { VitestRunMode } from './types/config'
-import { statSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { deepClone, slash } from '@vitest/utils/helpers'
 import * as find from 'empathic/find'
@@ -23,7 +22,7 @@ export async function createVitest(
   vitestOptions: VitestOptions = {},
 ): Promise<Vitest> {
   const ctx = new Vitest(mode, deepClone(options), vitestOptions)
-  const root = resolveRoot(options.root)
+  const root = slash(resolve(options.root || process.cwd()))
 
   const configPath
     = options.config === false
@@ -61,24 +60,4 @@ export async function createVitest(
     await ctx.close()
     throw error
   }
-}
-
-function resolveRoot(root: string | undefined): string {
-  const resolvedRoot = slash(resolve(root || process.cwd()))
-
-  if (root) {
-    let stats
-    try {
-      stats = statSync(resolvedRoot)
-    }
-    catch {
-      throw new Error(`Root directory does not exist: ${resolvedRoot}`)
-    }
-
-    if (!stats.isDirectory()) {
-      throw new Error(`Root is not a directory: ${resolvedRoot}`)
-    }
-  }
-
-  return resolvedRoot
 }

@@ -2,9 +2,10 @@ import type { CAC, Command } from 'cac'
 import type { VitestRunMode } from '../types/config'
 import type { CliOptions } from './cli-api'
 import type { CLIOption, CLIOptions as CLIOptionsConfig } from './cli-config'
+import { statSync } from 'node:fs'
 import { toArray } from '@vitest/utils/helpers'
 import cac from 'cac'
-import { normalize } from 'pathe'
+import { normalize, resolve } from 'pathe'
 import c, { disableDefaultColors } from 'tinyrainbow'
 import { version } from '../../../package.json' with { type: 'json' }
 import { isAgent, isForceColor } from '../../utils/env'
@@ -300,7 +301,28 @@ function normalizeCliOptions(cliFilters: string[], argv: CliOptions): CliOptions
     argv.run = true
   }
 
+  validateRootOption(argv)
+
   return argv
+}
+
+function validateRootOption(argv: CliOptions): void {
+  if (!argv.root) {
+    return
+  }
+
+  const root = resolve(argv.root)
+  let stats
+  try {
+    stats = statSync(root)
+  }
+  catch {
+    throw new Error(`Root directory does not exist: ${root}`)
+  }
+
+  if (!stats.isDirectory()) {
+    throw new Error(`Root is not a directory: ${root}`)
+  }
 }
 
 async function start(mode: VitestRunMode, cliFilters: string[], options: CliOptions): Promise<void> {
